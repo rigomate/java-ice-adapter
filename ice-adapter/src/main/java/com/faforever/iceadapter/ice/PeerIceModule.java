@@ -278,6 +278,7 @@ public class PeerIceModule {
         }
 
         log.debug(getLogPrefix() + "ICE terminated, connected, selected candidate pair: " + component.getSelectedPair().getLocalCandidate().getType().toString() + " <-> " + component.getSelectedPair().getRemoteCandidate().getType().toString());
+        log.debug(getLogPrefix() + "The selected candidate pair IP address: " + component.getSelectedPair().getLocalCandidate().getHostAddress().getAddress().toString() + " <-> " + component.getSelectedPair().getRemoteCandidate().getHostAddress().getAddress().toString());
 
         //We are connected
         connected = true;
