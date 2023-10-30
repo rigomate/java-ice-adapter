@@ -278,7 +278,28 @@ public class PeerIceModule {
         }
 
         log.debug(getLogPrefix() + "ICE terminated, connected, selected candidate pair: " + component.getSelectedPair().getLocalCandidate().getType().toString() + " <-> " + component.getSelectedPair().getRemoteCandidate().getType().toString());
-        log.debug(getLogPrefix() + "The selected candidate pair IP address: " + component.getSelectedPair().getLocalCandidate().getHostAddress().getAddress().toString() + " <-> " + component.getSelectedPair().getRemoteCandidate().getHostAddress().getAddress().toString());
+        var localaddress = component.getSelectedPair().getLocalCandidate().getHostAddress();
+        if (localaddress == null) {
+            localaddress = component.getSelectedPair().getLocalCandidate().getReflexiveAddress();
+        }
+        if (localaddress == null) {
+            localaddress = component.getSelectedPair().getLocalCandidate().getRelayedAddress();
+        }
+        if (localaddress != null) {
+            log.debug(getLogPrefix() + "local address: " + localaddress.getAddress().toString());
+        }
+
+
+        var remoteaddress = component.getSelectedPair().getRemoteCandidate().getHostAddress();
+        if (remoteaddress == null) {
+            remoteaddress = component.getSelectedPair().getRemoteCandidate().getReflexiveAddress();
+        }
+        if (remoteaddress == null) {
+            remoteaddress = component.getSelectedPair().getRemoteCandidate().getRelayedAddress();
+        }
+        if (remoteaddress != null) {
+            log.debug(getLogPrefix() + "remote address: " + remoteaddress.getAddress().toString());
+        }
 
         //We are connected
         connected = true;
