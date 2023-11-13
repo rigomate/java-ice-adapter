@@ -324,7 +324,8 @@ public class GUI extends Application {
 		});
 		iceAdapterControls.getChildren().add(killButton);
 
-		if(System.getProperty("os.name").contains("Windows")) {
+		String osName = System.getProperty("os.name");
+		if(osName != null && osName.contains("Windows")) {
 			stopButton.setDisable(true);
 			killButton.setDisable(true);
 		}

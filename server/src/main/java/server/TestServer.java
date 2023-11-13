@@ -41,8 +41,9 @@ public class TestServer {
 			ServerSocket serverSocket = new ServerSocket(ICEAdapterTest.TEST_SERVER_PORT);
 
 			while (running) {
+				Socket socket = null;
 				try {
-					Socket socket = serverSocket.accept();
+					socket = serverSocket.accept();
 
 					if(players.size() >= IceTestServerConfig.INSTANCE.getMax_users()) {
 						socket.close();
@@ -52,6 +53,11 @@ public class TestServer {
 
 				} catch(IOException e) {
 					Logger.warning("Error while accepting user.");
+				} finally {
+					if (socket != null)
+					{
+						socket.close();
+					}
 				}
 			}
 		} catch (IOException e) {

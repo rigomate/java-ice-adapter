@@ -18,8 +18,10 @@ public class NativeAccess {
     private static CStdLib c;
 
     static {
-        windows = System.getProperty("os.name").contains("Windows");
-        arch64 = System.getProperty("os.arch").endsWith("64");
+        String osName = System.getProperty("os.name");
+        windows = osName != null && osName.contains("Windows");
+        String osArch = System.getProperty("os.arch");
+        arch64 = osArch != null && osArch.endsWith("64");
 
         //Setup posix syscall id's
         if(arch64) {

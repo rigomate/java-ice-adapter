@@ -55,12 +55,16 @@ public class HolePunching {
                 } else if(peers.containsKey(fromId)) {
                     byte[] responseBuffer = ("res" + String.valueOf(TestClient.playerID) + ":" + startTime).getBytes();
                     DatagramPacket responsePacket = new DatagramPacket(responseBuffer, 0, responseBuffer.length);
-                    responsePacket.setAddress(peers.get(fromId).getKey());
-                    responsePacket.setPort(peers.get(fromId).getValue());
-                    try {
-                        datagramSocket.send(responsePacket);
-                    } catch (IOException e2) {
-                        e2.printStackTrace();
+                    var peerInfo = peers.get(fromId);
+                    if (peerInfo != null)
+                    {
+                        responsePacket.setAddress(peerInfo.getKey());
+                        responsePacket.setPort(peerInfo.getValue());
+                        try {
+                            datagramSocket.send(responsePacket);
+                        } catch (IOException e2) {
+                            e2.printStackTrace();
+                        }
                     }
                 }
             } catch (IOException e) {

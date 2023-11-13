@@ -27,7 +27,8 @@ public class PingWrapper {
             Process process;
             Pattern output_pattern;
 
-            if (System.getProperty("os.name").startsWith("Windows")) {
+            String osName = System.getProperty("os.name");
+            if (osName != null && osName.startsWith("Windows")) {
                 process = new ProcessBuilder("ping", "-n", count.toString(), address).start();
                 output_pattern = WINDOWS_OUTPUT_PATTERN;
             } else {

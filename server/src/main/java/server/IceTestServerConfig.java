@@ -15,14 +15,19 @@ public class IceTestServerConfig {
 
     public static void init() {
         StringBuilder sb = new StringBuilder();
+        Scanner scanner = null;
         try {
-            Scanner scanner = new Scanner(new File("iceServer.cfg"));
+            scanner = new Scanner(new File("iceServer.cfg"));
             while(scanner.hasNext()) {
                 sb.append(scanner.nextLine()).append("\n");
             }
             INSTANCE = new Gson().fromJson(sb.toString(), IceTestServerConfig.class);
         } catch(IOException e) {
             Logger.crash(e);
+        } finally {
+            if (scanner != null) {
+                scanner.close(); // Close the Scanner in the finally block
+            }
         }
     }
 
