@@ -55,14 +55,48 @@ public class PeerIceModule {
     private final Peer peer;
 
     private Agent agent;
+
+    public synchronized Agent getAgent() {
+        return agent;
+    }
+
+    public synchronized void setAgent(Agent agent) {
+        this.agent = agent;
+    }
+
     private IceMediaStream mediaStream;
+
+    public synchronized IceMediaStream getMediaStream() {
+        return mediaStream;
+    }
+
+    public synchronized void setMediaStream(IceMediaStream mediaStream) {
+        this.mediaStream = mediaStream;
+    }
+
     private Component component;
+
+    public synchronized Component getComponent() {
+        return component;
+    }
+
+    public synchronized void setComponent(Component component) {
+        this.component = component;
+    }
 
     private volatile IceState iceState = NEW;
     private volatile boolean connected = false;
     private volatile Thread listenerThread;
 
     private PeerTurnRefreshModule turnRefreshModule;
+
+    public synchronized PeerTurnRefreshModule getTurnRefreshModule() {
+        return turnRefreshModule;
+    }
+
+    public synchronized void setTurnRefreshModule(PeerTurnRefreshModule turnRefreshModule) {
+        this.turnRefreshModule = turnRefreshModule;
+    }
 
     // Checks the connection by sending echo requests and initiates a reconnect if needed
     private final PeerConnectivityCheckerModule connectivityChecker = new PeerConnectivityCheckerModule(this);
@@ -421,7 +455,7 @@ public class PeerIceModule {
      * @param faData
      * @param length
      */
-    void onFaDataReceived(byte[] faData, int length) {
+    public synchronized void onFaDataReceived(byte[] faData, int length) {
         byte[] data = new byte[length + 1];
         data[0] = 'd';
         System.arraycopy(faData, 0, data, 1, length);
@@ -434,7 +468,7 @@ public class PeerIceModule {
      * @param offset
      * @param length
      */
-    void sendViaIce(byte[] data, int offset, int length) {
+    public synchronized void sendViaIce(byte[] data, int offset, int length) {
         if (connected && component != null) {
             try {
                 component
@@ -468,7 +502,7 @@ public class PeerIceModule {
      */
     public void listener() {
         log.debug(getLogPrefix() + "Now forwarding data from ICE to FA for peer");
-        Component localComponent = component;
+        Component localComponent = getComponent();
 
         byte[] data = new byte
                 [65536]; // 64KiB = UDP MTU, in practice due to ethernet frames being <= 1500 B, this is often not used
@@ -514,7 +548,7 @@ public class PeerIceModule {
         log.debug(getLogPrefix() + "No longer listening for messages from ICE");
     }
 
-    void close() {
+    public synchronized void close() {
         if (turnRefreshModule != null) {
             turnRefreshModule.close();
         }

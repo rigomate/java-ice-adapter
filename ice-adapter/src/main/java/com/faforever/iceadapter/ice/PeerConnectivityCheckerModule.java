@@ -4,6 +4,8 @@ import static com.faforever.iceadapter.debug.Debug.debug;
 
 import com.google.common.primitives.Longs;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -20,11 +22,17 @@ public class PeerConnectivityCheckerModule {
     private volatile boolean running = false;
     private volatile Thread checkerThread;
 
-    @Getter
-    private float averageRTT = 0.0f;
+    private final AtomicReference<Float> averageRTT = new AtomicReference<>(0.0f);
 
-    @Getter
-    private long lastPacketReceived;
+    public float getAverageRTT() {
+        return averageRTT.get(); // Extract the value directly
+    }
+
+    private final AtomicLong lastPacketReceived = new AtomicLong(System.currentTimeMillis());
+
+    public long getLastPacketReceived() {
+        return lastPacketReceived.get(); // Extract the value directly
+    }
 
     @Getter
     private long echosReceived = 0;
@@ -44,8 +52,8 @@ public class PeerConnectivityCheckerModule {
         running = true;
         log.debug("Starting connectivity checker for peer {}", ice.getPeer().getRemoteId());
 
-        averageRTT = 0.0f;
-        lastPacketReceived = System.currentTimeMillis();
+        averageRTT.set(0.0f);
+        lastPacketReceived.set(System.currentTimeMillis());
 
         checkerThread = new Thread(this::checkerThread, getThreadName());
         checkerThread.setUncaughtExceptionHandler(
@@ -86,13 +94,9 @@ public class PeerConnectivityCheckerModule {
 
         int rtt =
                 (int) (System.currentTimeMillis() - Longs.fromByteArray(Arrays.copyOfRange(data, offset + 1, length)));
-        if (averageRTT == 0) {
-            averageRTT = rtt;
-        } else {
-            averageRTT = (float) averageRTT * 0.8f + (float) rtt * 0.2f;
-        }
+        averageRTT.updateAndGet(current -> current == 0 ? rtt : current * 0.8f + rtt * 0.2f);
 
-        lastPacketReceived = System.currentTimeMillis();
+        lastPacketReceived.set(System.currentTimeMillis());
 
         debug().peerConnectivityUpdate(ice.getPeer());
         //      System.out.printf("Received echo from %d after %d ms, averageRTT: %d ms", ice.getPeer().getRemoteId(),
@@ -123,7 +127,7 @@ public class PeerConnectivityCheckerModule {
                 return;
             }
 
-            if (System.currentTimeMillis() - lastPacketReceived > 10000) {
+            if (System.currentTimeMillis() - getLastPacketReceived() > 10000) {
                 log.warn(
                         "Didn't receive any answer to echo requests for the past 10 seconds from {}, aborting connection",
                         ice.getPeer().getRemoteLogin());

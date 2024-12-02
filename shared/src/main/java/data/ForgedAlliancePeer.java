@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Data
 public class ForgedAlliancePeer {
@@ -16,7 +17,12 @@ public class ForgedAlliancePeer {
     public final Offerer offerer;
 
     public int echoRequestsSent;
-    public long lastPacketReceived = System.currentTimeMillis();
+    private final AtomicLong lastPacketReceived = new AtomicLong(System.currentTimeMillis());
+    
+    public long getLastPacketReceived() {
+        return lastPacketReceived.get(); // Extract the value directly
+    }
+
     public final Queue<Integer> latencies = new LinkedList<>();
 
     public long lastConnectionRequestSent = 0;
@@ -28,7 +34,7 @@ public class ForgedAlliancePeer {
     }
 
     public int addLatency(int lat) {
-        lastPacketReceived = System.currentTimeMillis();
+        lastPacketReceived.set(System.currentTimeMillis());
 
         synchronized (latencies) {
             latencies.add(lat);
@@ -55,7 +61,7 @@ public class ForgedAlliancePeer {
     }
 
     public boolean isQuiet() {
-        return System.currentTimeMillis() - lastPacketReceived > 5000;
+        return System.currentTimeMillis() - getLastPacketReceived() > 5000;
     }
 
     public enum Offerer {

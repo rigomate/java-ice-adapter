@@ -16,14 +16,15 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.util.ConcurrentModificationException;
-import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static com.github.nocatch.NoCatch.noCatch;
 
 public class TestServerAccessor {
 
+	private static final Object lock = new Object();  // Lock object to synchronize methods
 	private static Gson gson = new Gson();
 	public static BooleanProperty connected = new SimpleBooleanProperty(false);
 
@@ -31,12 +32,13 @@ public class TestServerAccessor {
 	private static DataInputStream in;
 	private static DataOutputStream out;
 
-	public static Queue<Integer> latencies = new LinkedList<>();
+ 	// Use thread-safe queue
+    public static Queue<Integer> latencies = new ConcurrentLinkedQueue<>();
 
-	public static void init() {
-		connect();
-		new Thread(TestServerAccessor::echoThread).start();
-	}
+    public static synchronized void init() {
+        connect();
+        new Thread(TestServerAccessor::echoThread).start();
+    }
 
 
 	private static void listener() {
@@ -116,7 +118,7 @@ public class TestServerAccessor {
 	}
 
 	public static void send(Object message) {
-		synchronized (out) {
+		synchronized (lock) {
 			try {
                 String json = null;
                 try {
@@ -143,64 +145,68 @@ public class TestServerAccessor {
 		}
 	}
 
-	private static void connect() {
-		Alert alert = noCatch(() -> GUI.showDialog("Connecting...").get());
-		alert.setOnCloseRequest(event -> System.exit(0));
-		Logger.info("Connecting to %s:%d...", ICEAdapterTest.TEST_SERVER_ADDRESS, ICEAdapterTest.TEST_SERVER_PORT);
+	private static synchronized void connect() {
+		synchronized (lock) {  // Synchronize connect() method to avoid race with send()
+			Alert alert = noCatch(() -> GUI.showDialog("Connecting...").get());
+			alert.setOnCloseRequest(event -> System.exit(0));
+			Logger.info("Connecting to %s:%d...", ICEAdapterTest.TEST_SERVER_ADDRESS, ICEAdapterTest.TEST_SERVER_PORT);
 
-		try {
-			socket = new Socket(ICEAdapterTest.TEST_SERVER_ADDRESS, ICEAdapterTest.TEST_SERVER_PORT);
-			in = new DataInputStream(socket.getInputStream());
-			out = new DataOutputStream(socket.getOutputStream());
+			try {
+				socket = new Socket(ICEAdapterTest.TEST_SERVER_ADDRESS, ICEAdapterTest.TEST_SERVER_PORT);
+				in = new DataInputStream(socket.getInputStream());
+				out = new DataOutputStream(socket.getOutputStream());
 
-			if(in.readInt() != ICEAdapterTest.VERSION) {
-				Logger.error("Wrong version: %d", ICEAdapterTest.VERSION);
-				socket.close();
+				if(in.readInt() != ICEAdapterTest.VERSION) {
+					Logger.error("Wrong version: %d", ICEAdapterTest.VERSION);
+					socket.close();
+					GUI.runAndWait(alert::close);
+					alert = noCatch(() -> GUI.showDialog("Please download the newest version.").get());
+					try { Thread.sleep(3000); } catch(InterruptedException e) {}
+					System.exit(59);
+				}
+
+				synchronized (out) {
+					out.writeUTF(TestClient.username);
+					if(! in.readBoolean()) {
+						Logger.error("could not lock in username");
+						System.exit(3);
+					}
+				}
+
+				TestClient.playerID = in.readInt();
+				GUI.instance.scenario.set(in.readUTF());
+				HolePunching.init(in.readInt());
+
+				Logger.info("Got username: %s(%d)", TestClient.username, TestClient.playerID);
+
+			} catch (IOException e) {
+				Logger.error("Could not connect to test server");
+				alert.setOnCloseRequest(null);
 				GUI.runAndWait(alert::close);
-				alert = noCatch(() -> GUI.showDialog("Please download the newest version.").get());
-				try { Thread.sleep(3000); } catch(InterruptedException e) {}
-				System.exit(59);
+				alert = noCatch(() -> GUI.showDialog("Could not reach test server.\nPlease wait till the test starts.\nWill retry in 10 seconds.").get());
+				alert.setOnCloseRequest(ev -> {
+					System.exit(-1);
+				});
+				try { Thread.sleep(10000); } catch (InterruptedException e1) {}
+				alert.setOnCloseRequest(null);
+				GUI.runAndWait(alert::close);
+
+				connect();
+				return;
 			}
 
-			out.writeUTF(TestClient.username);
-			if(! in.readBoolean()) {
-				Logger.error("could not lock in username");
-				System.exit(3);
-			}
 
-			TestClient.playerID = in.readInt();
-			GUI.instance.scenario.set(in.readUTF());
-			HolePunching.init(in.readInt());
+			connected.set(true);
+			Logger.info("Connected to %s:%d", ICEAdapterTest.TEST_SERVER_ADDRESS, ICEAdapterTest.TEST_SERVER_PORT);
 
-			Logger.info("Got username: %s(%d)", TestClient.username, TestClient.playerID);
+			new Thread(TestServerAccessor::listener).start();
 
-		} catch (IOException e) {
-			Logger.error("Could not connect to test server");
 			alert.setOnCloseRequest(null);
 			GUI.runAndWait(alert::close);
-			alert = noCatch(() -> GUI.showDialog("Could not reach test server.\nPlease wait till the test starts.\nWill retry in 10 seconds.").get());
-			alert.setOnCloseRequest(ev -> {
-				System.exit(-1);
-			});
-			try { Thread.sleep(10000); } catch (InterruptedException e1) {}
-			alert.setOnCloseRequest(null);
-			GUI.runAndWait(alert::close);
-
-			connect();
-			return;
 		}
-
-
-		connected.set(true);
-		Logger.info("Connected to %s:%d", ICEAdapterTest.TEST_SERVER_ADDRESS, ICEAdapterTest.TEST_SERVER_PORT);
-
-		new Thread(TestServerAccessor::listener).start();
-
-		alert.setOnCloseRequest(null);
-		GUI.runAndWait(alert::close);
 	}
 
-	public static void disconnect() {
+	public static synchronized  void disconnect() {
 		Logger.debug("Disconnecting from test server...");
 		try {
 			socket.close();

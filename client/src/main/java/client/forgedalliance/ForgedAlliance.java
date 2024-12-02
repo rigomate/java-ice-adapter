@@ -142,8 +142,8 @@ public class ForgedAlliance {
 
 				//Data
 				peers.stream()
-						.filter(p -> System.currentTimeMillis() - p.lastPacketReceived > 10000)
-						.forEach(p -> p.addLatency((int)(System.currentTimeMillis() - p.lastPacketReceived)));
+						.filter(p -> System.currentTimeMillis() - p.getLastPacketReceived() > 10000)
+						.forEach(p -> p.addLatency((int)(System.currentTimeMillis() - p.getLastPacketReceived())));
 			}
 
 			try { Thread.sleep(ECHO_INTERVAL); } catch(InterruptedException e) {}

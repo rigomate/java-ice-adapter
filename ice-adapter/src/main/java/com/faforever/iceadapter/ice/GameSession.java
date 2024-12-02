@@ -51,18 +51,21 @@ public class GameSession {
      *
      * @return the port the ice adapter will be listening/sending for FA
      */
-    public int connectToPeer(String remotePlayerLogin, int remotePlayerId, boolean offer, int preferredPort) {
+    public synchronized int connectToPeer(
+            String remotePlayerLogin, int remotePlayerId, boolean offer, int preferredPort) {
         Peer peer = new Peer(this, remotePlayerId, remotePlayerLogin, offer, preferredPort);
-        peers.put(remotePlayerId, peer);
+
+        peers.put(remotePlayerId, peer); // Protect shared resource
         debug().connectToPeer(remotePlayerId, remotePlayerLogin, offer);
+
         return peer.getFaSocket().getLocalPort();
     }
 
     /**
      * Disconnects from a peer (ICE)
      */
-    public void disconnectFromPeer(int remotePlayerId) {
-        Peer removedPeer = peers.remove(remotePlayerId);
+    public synchronized void disconnectFromPeer(int remotePlayerId) {
+        Peer removedPeer = peers.remove(remotePlayerId); // Safe with ConcurrentHashMap
         if (removedPeer != null) {
             removedPeer.close();
             debug().disconnectFromPeer(remotePlayerId);
@@ -75,9 +78,9 @@ public class GameSession {
      * Does a manual {@link #disconnectFromPeer} and {@link #connectToPeer}.
      * Uses the same port that was on the previous connection.
      */
-    public void reconnectToPeer(Integer remotePlayerId) {
+    public synchronized void reconnectToPeer(Integer remotePlayerId) {
         Peer reconnectPeer = peers.get(remotePlayerId);
-        if (Objects.nonNull(reconnectPeer)) {
+        if (reconnectPeer != null) {
             String remotePlayerLogin = reconnectPeer.getRemoteLogin();
             boolean offer = reconnectPeer.isLocalOffer();
             int port = reconnectPeer.getFaSocket().getLocalPort();
@@ -90,7 +93,7 @@ public class GameSession {
     /**
      * Stops the connection to all peers and all ice agents
      */
-    public void close() {
+    public synchronized void close() {
         log.info("Closing gameSession");
         peers.values().forEach(Peer::close);
         peers.clear();
