@@ -178,9 +178,13 @@ public class TestServer {
 						continue;
 					}
 
-//					if(filterNonConnected && (players.stream().noneMatch(p -> p.getId() == entry1.getKey()) || players.stream().noneMatch(p -> p.getId() == entry2.getKey()))) {
-//						continue;
-//					}
+					CollectedInformation info1 = collectedData.get(entry1.getKey());
+					CollectedInformation info2 = collectedData.get(entry2.getKey());
+	
+					if (info1 == null || info2 == null) {
+						sb.append(String.format("Missing data for %d or %d.\n", entry1.getKey(), entry2.getKey()));
+						continue;
+					}
 
 					sb.append(String.format("%d -> %d: ", entry1.getKey(), entry2.getKey()));
 
@@ -196,8 +200,8 @@ public class TestServer {
 					double avg = Arrays.stream(pings).average().orElse(99999);
 					double avgLimited = Arrays.stream(pings).filter(p -> p < 2000).average().orElse(99999);
 
-					double serverPing = collectedData.get(entry1.getKey()).getInformationMessages().stream().flatMap(im -> im.getLatencies().stream()).mapToDouble(Integer::doubleValue).average().orElse(99999)
-							+ collectedData.get(entry2.getKey()).getInformationMessages().stream().flatMap(im -> im.getLatencies().stream()).mapToDouble(Integer::doubleValue).average().orElse(99999);
+					double serverPing = info1.getInformationMessages().stream().flatMap(im -> im.getLatencies().stream()).mapToDouble(Integer::doubleValue).average().orElse(99999)
+							+ info2.getInformationMessages().stream().flatMap(im -> im.getLatencies().stream()).mapToDouble(Integer::doubleValue).average().orElse(99999);
 
 					sb.append(String.format("%.0f/%.0f(%.0f)/%.0f", min, avg, avgLimited, max));
 					sb.append(String.format("\t(Server: %.0f)", serverPing));
