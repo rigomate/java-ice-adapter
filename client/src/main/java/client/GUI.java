@@ -299,7 +299,7 @@ public class GUI extends Application {
             }
         });
 		table.setItems(peers);
-		table.getColumns().addAll(tableColumns);
+		table.getColumns().addAll(Arrays.asList(tableColumns));
 		root.getChildren().add(table);
 
 

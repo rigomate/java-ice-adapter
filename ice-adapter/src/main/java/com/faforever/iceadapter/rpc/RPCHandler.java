@@ -81,7 +81,7 @@ public class RPCHandler {
     public void sendToGpgNet(String header, String... chunks) {
         GPGNetServer.clientFuture.thenAccept(gpgNetClient -> {
             gpgNetClient.getLobbyFuture().thenRun(() -> {
-                gpgNetClient.sendGpgnetMessage(header, chunks);
+                gpgNetClient.sendGpgnetMessage(header, (Object[]) chunks);
             });
         });
     }

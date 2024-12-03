@@ -210,7 +210,7 @@ public class DebugWindow extends Application implements Debugger {
     }
 
     public static void launchApplication() {
-        launch(DebugWindow.class, null);
+        launch(DebugWindow.class, new String[0]);
     }
 
     @NoArgsConstructor
