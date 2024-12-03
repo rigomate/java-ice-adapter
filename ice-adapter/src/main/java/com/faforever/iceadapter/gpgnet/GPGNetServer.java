@@ -147,26 +147,31 @@ public class GPGNetServer {
          */
         private void listenerThread() {
             log.debug("Listening for GPG messages");
+
             boolean triggerActive =
                     false; // Prevents a race condition between this thread and the thread that has created this object
             // and is now going to set GPGNetServer.currentClient
-            try (var inputStream = socket.getInputStream();
-                    var gpgnetIn = new FaDataInputStream(inputStream)) {
-                while ((!triggerActive || GPGNetServer.currentClient == this) && !stopping) {
-                    String command = gpgnetIn.readString();
-                    List<Object> args = gpgnetIn.readChunks();
 
-                    processGpgnetMessage(command, args);
+            try (var inputStream = socket.getInputStream()) { // Ensure inputStream is closed if gpgnetIn creation fails
+                try (var gpgnetIn = new FaDataInputStream(inputStream)) { // Ensure gpgnetIn is auto-closed
+                    while ((!triggerActive || GPGNetServer.currentClient == this) && !stopping) {
+                        String command = gpgnetIn.readString();
+                        List<Object> args = gpgnetIn.readChunks();
 
-                    if (!triggerActive && GPGNetServer.currentClient != null) {
-                        triggerActive =
-                                true; // From now on we will check GPGNetServer.currentClient to see if we should stop
+                        processGpgnetMessage(command, args);
+
+                        if (!triggerActive && GPGNetServer.currentClient != null) {
+                            triggerActive =
+                                    true; // From now on we will check GPGNetServer.currentClient to see if we should
+                            // stop
+                        }
                     }
                 }
             } catch (IOException e) {
                 log.error("Error while communicating with FA (input), assuming shutdown", e);
                 GPGNetServer.onGpgnetConnectionLost();
             }
+
             log.debug("No longer listening for GPGPNET from FA");
         }
 

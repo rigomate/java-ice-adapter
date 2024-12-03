@@ -238,18 +238,19 @@ public class ICEAdapter {
 			}
 
             try {
-                BufferedWriter iceAdapterLogWriter = new BufferedWriter(new FileWriter(new File(String.format("faf-ice-adapter_%s.log", TestClient.username))));
-                OsUtil.gobbleLines(process.getInputStream(), s -> noCatch(() -> iceAdapterLogWriter.write(s + "\n")));
-                OsUtil.gobbleLines(process.getErrorStream(), s -> noCatch(() -> iceAdapterLogWriter.write(s + "\n")));
+                try (BufferedWriter iceAdapterLogWriter = new BufferedWriter(new FileWriter(new File(String.format("faf-ice-adapter_%s.log", TestClient.username))))) {
+					OsUtil.gobbleLines(process.getInputStream(), s -> noCatch(() -> iceAdapterLogWriter.write(s + "\n")));
+					OsUtil.gobbleLines(process.getErrorStream(), s -> noCatch(() -> iceAdapterLogWriter.write(s + "\n")));
 
-                Thread t = new Thread(() -> {
-                    while(true) {
-                        noCatch(() -> Thread.sleep(5000));
-                        noCatch(() -> iceAdapterLogWriter.flush());
-                    }
-                });
-                t.setDaemon(true);
-                t.start();
+					Thread t = new Thread(() -> {
+					    while(true) {
+					        noCatch(() -> Thread.sleep(5000));
+					        noCatch(() -> iceAdapterLogWriter.flush());
+					    }
+					});
+					t.setDaemon(true);
+					t.start();
+				}
             } catch (IOException e) {
                 Logger.warning("Could not open output writer for ice adapter log.");
             }

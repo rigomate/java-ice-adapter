@@ -44,7 +44,7 @@ public class Player {
 		//do not do anything here, player may not be logged in/connected anymore
 	}
 
-	private void login() {
+	private synchronized void login() {
 		try {
 			in = new DataInputStream(socket.getInputStream());
 			out = new DataOutputStream(socket.getOutputStream());
@@ -170,7 +170,7 @@ public class Player {
 		}
 	}
 
-	public void disconnect() {
+	public synchronized void disconnect() {
 		synchronized (TestServer.players) {
 			TestServer.players.remove(this);
 		}
